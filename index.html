@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>南澳海洋步道 | 互動式發展計畫</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Coastal Earth -->
+    <!-- Application Structure Plan: 我採用了主題式儀表板的資訊架構，而非報告的線性結構。使用者可以透過頂部導覽列，自由跳轉至感興趣的核心主題：『計畫願景』、『探索航線』、『文化體驗』、『安全準則』及『市場潛力』。這種非線性的結構能讓不同背景的使用者（如投資者、潛在遊客、合作夥伴）快速找到他們關心的資訊。核心互動設計在於『探索航線』的動態切換與圖表聯動，以及『市場潛力』中的互動式圖表比較，旨在將靜態數據轉化為動態洞察，大幅提升可用性與使用者參與度。 -->
+    <!-- Visualization & Content Choices: 
+        - 計畫願景: (Goal: Inform) 使用三欄式卡片佈局呈現三大支柱，清晰傳達核心策略。
+        - 探索航線: (Goal: Compare/Inform) 採用頁籤(Tab)互動，讓使用者點擊不同等級（初階/中階/高階）來動態更新航線資訊。搭配一個Chart.js的雷達圖，視覺化比較各航線的「距離」、「時間」、「技能要求」與「風險等級」，比靜態表格更直觀。
+        - 文化體驗: (Goal: Organize/Inform) 以網格卡片形式呈現「文化整合接觸點矩陣」，每個卡片代表一個體驗環節，點擊可顯示更多細節，結構清晰且具吸引力。
+        - 安全準則: (Goal: Inform/Compare) 將「法規遵循與最佳實踐檢核表」設計成對比鮮明的列表，用圖標和色彩突顯「南澳黃金標準」的優越性，建立信任感。
+        - 市場潛力: (Goal: Compare/Analyze) SWOT分析使用經典的四象限佈局。競爭者分析則透過Chart.js的水平長條圖呈現，使用者可以透過下拉選單切換比較「價格」或「時間」，動態視覺化南澳的市場切入點。
+        - Library/Method: Chart.js (Canvas) for all charts. Tailwind CSS for layout and styling. Vanilla JS for interactions. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #FDFBF8; /* Warm Neutral Background */
+            color: #4B5563; /* Dark Gray Text */
+        }
+        .nav-link {
+            @apply px-4 py-2 text-gray-600 hover:text-teal-700 hover:bg-amber-100 rounded-md transition-all duration-300;
+        }
+        .nav-link.active {
+            @apply text-teal-800 bg-amber-200 font-semibold;
+        }
+        .section-title {
+            @apply text-3xl font-bold text-teal-800 mb-2 text-center;
+        }
+        .section-subtitle {
+            @apply text-lg text-gray-500 mb-8 text-center max-w-3xl mx-auto;
+        }
+        .card {
+            @apply bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300;
+        }
+        .tab-button {
+            @apply px-6 py-2 text-lg font-medium rounded-t-lg transition-colors duration-300 border-b-4 border-transparent;
+        }
+        .tab-button.active {
+            @apply text-teal-700 border-teal-600;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 320px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <div class="text-2xl font-bold text-teal-800">
+                南澳海洋步道
+            </div>
+            <div class="hidden md:flex space-x-2">
+                <a href="#vision" class="nav-link">計畫願景</a>
+                <a href="#routes" class="nav-link">探索航線</a>
+                <a href="#culture" class="nav-link">文化體驗</a>
+                <a href="#safety" class="nav-link">安全準則</a>
+                <a href="#market" class="nav-link">市場潛力</a>
+            </div>
+            <div class="md:hidden">
+                <select id="mobile-nav" class="bg-white border border-gray-300 rounded-md p-2 text-gray-700">
+                    <option value="#vision">計畫願景</option>
+                    <option value="#routes">探索航線</option>
+                    <option value="#culture">文化體驗</option>
+                    <option value="#safety">安全準則</option>
+                    <option value="#market">市場潛力</option>
+                </select>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section id="hero" class="relative text-center py-24 md:py-32 bg-amber-50">
+            <div class="container mx-auto px-6">
+                <h1 class="text-4xl md:text-6xl font-extrabold text-teal-900 leading-tight">南澳海洋步道</h1>
+                <p class="mt-4 text-xl md:text-2xl text-gray-600">一份結合泰雅文化與永續冒險的獨木舟發展計畫</p>
+                <a href="#vision" class="mt-8 inline-block bg-teal-600 text-white font-bold py-3 px-8 rounded-full hover:bg-teal-700 transition-transform duration-300 hover:scale-105">
+                    開始探索計畫
+                </a>
+            </div>
+        </section>
+
+        <section id="vision" class="py-20">
+            <div class="container mx-auto px-6">
+                <h2 class="section-title">計畫願景</h2>
+                <p class="section-subtitle">本計畫旨在將南澳打造成世界級獨木舟目的地，其核心策略建立於三大支柱之上，創造一種能夠榮耀土地、賦權在地、並為遊客帶來深刻啟發的新型態觀光模式。</p>
+                <div class="grid md:grid-cols-3 gap-8 mt-12">
+                    <div class="card text-center">
+                        <div class="text-5xl text-amber-500 mb-4">🌿</div>
+                        <h3 class="text-2xl font-bold text-teal-800 mb-2">產品差異化</h3>
+                        <p class="text-gray-600">深度融合泰雅族的傳統智慧、故事與儀式，創造無法複製的「文化遠征」體驗，超越市場上普遍的景點打卡模式。</p>
+                    </div>
+                    <div class="card text-center">
+                        <div class="text-5xl text-amber-500 mb-4">🛡️</div>
+                        <h3 class="text-2xl font-bold text-teal-800 mb-2">安全至上</h3>
+                        <p class="text-gray-600">建立超越法規的「南澳黃金安全準則」，將風險管理作為所有營運活動的核心，確保在挑戰性的海岸環境中，遊客安全永遠第一。</p>
+                    </div>
+                    <div class="card text-center">
+                        <div class="text-5xl text-amber-500 mb-4">🤝</div>
+                        <h3 class="text-2xl font-bold text-teal-800 mb-2">永續社群夥伴關係</h3>
+                        <p class="text-gray-600">發展模式以在地社群為核心，與泰雅族部落建立緊密合作網絡，確保觀光發展的經濟效益能實質回饋地方，共榮共好。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="routes" class="py-20 bg-teal-50/50">
+            <div class="container mx-auto px-6">
+                <h2 class="section-title">探索航線</h2>
+                <p class="section-subtitle">基於南澳海岸「高回報、高風險」的特性，我們設計了分級路線系統。點擊下方頁籤，探索不同等級的航程，並透過互動圖表了解其特性，選擇最適合您的挑戰。</p>
+                <div class="flex justify-center border-b border-gray-200 mb-8">
+                    <button class="tab-button active" data-level="1">第一級：海灣探索者</button>
+                    <button class="tab-button" data-level="2">第二級：海岸航行者</button>
+                    <button class="tab-button" data-level="3">第三級：遠征先鋒</button>
+                </div>
+                <div class="grid lg:grid-cols-2 gap-8 items-center">
+                    <div id="route-details" class="transition-opacity duration-500">
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="routeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="culture" class="py-20">
+            <div class="container mx-auto px-6">
+                <h2 class="section-title">文化體驗：與泰雅同行</h2>
+                <p class="section-subtitle">我們將泰雅文化無縫地編織到獨木舟體驗的每一個環節。這不僅是增加附加價值，更是賦予這趟旅程靈魂與意義，讓您踏上泰雅祖先的海洋路徑。</p>
+                <div id="culture-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-12">
+                </div>
+            </div>
+        </section>
+
+        <section id="safety" class="py-20 bg-amber-50/50">
+            <div class="container mx-auto px-6">
+                <h2 class="section-title">安全準則：我們的承諾</h2>
+                <p class="section-subtitle">在南澳充滿挑戰的環境中，安全是品牌信譽的命脈。我們主張建立一套超越法規最低要求的「南澳黃金標準」，以此作為市場區隔與品質保證。</p>
+                <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-xl p-6 md:p-8">
+                    <ul id="safety-checklist" class="space-y-4">
+                    </ul>
+                </div>
+            </div>
+        </section>
+        
+        <section id="market" class="py-20">
+            <div class="container mx-auto px-6">
+                <h2 class="section-title">市場潛力分析</h2>
+                <p class="section-subtitle">南澳擁有獨特的市場定位。透過SWOT分析與競爭者比較，我們能清晰看見「文化遠征」模式如何填補市場空白，創造無可取代的頂級體驗。</p>
+                <div class="grid lg:grid-cols-2 gap-12 mt-12">
+                    <div>
+                        <h3 class="text-2xl font-bold text-center text-teal-800 mb-6">SWOT 分析</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-green-100 p-4 rounded-lg">
+                                <h4 class="font-bold text-green-800">優勢 (S)</h4>
+                                <ul class="list-disc list-inside text-sm text-green-700 mt-2 space-y-1">
+                                    <li>無可比擬的斷層海岸地景</li>
+                                    <li>深厚且易於接觸的泰雅文化</li>
+                                    <li>獨特的「神秘沙灘」探險點</li>
+                                    <li>遊客密度較低，體驗優質</li>
+                                </ul>
+                            </div>
+                            <div class="bg-red-100 p-4 rounded-lg">
+                                <h4 class="font-bold text-red-800">劣勢 (W)</h4>
+                                <ul class="list-disc list-inside text-sm text-red-700 mt-2 space-y-1">
+                                    <li>海象嚴峻多變，營運風險高</li>
+                                    <li>基礎設施與下水點有限</li>
+                                    <li>地理位置相對偏遠</li>
+                                    <li>在地合格嚮導數量不足</li>
+                                </ul>
+                            </div>
+                            <div class="bg-blue-100 p-4 rounded-lg">
+                                <h4 class="font-bold text-blue-800">機會 (O)</h4>
+                                <ul class="list-disc list-inside text-sm text-blue-700 mt-2 space-y-1">
+                                    <li>開發頂級文化遊程，填補市場空白</li>
+                                    <li>定位為永續生態旅遊領導品牌</li>
+                                    <li>規劃多日行程，延長遊客停留</li>
+                                    <li>吸引國際深度探險旅客</li>
+                                </ul>
+                            </div>
+                            <div class="bg-yellow-100 p-4 rounded-lg">
+                                <h4 class="font-bold text-yellow-800">威脅 (T)</h4>
+                                <ul class="list-disc list-inside text-sm text-yellow-700 mt-2 space-y-1">
+                                    <li>天氣不穩影響營收與滿意度</li>
+                                    <li>安全管理不當易發意外</li>
+                                    <li>不受管制的旅遊行為破壞資源</li>
+                                    <li>鄰近地區低價遊程的價格競爭</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                         <h3 class="text-2xl font-bold text-center text-teal-800 mb-4">宜蘭水域活動業者比較</h3>
+                         <div class="flex justify-center mb-4">
+                            <select id="competitor-metric-selector" class="bg-white border border-gray-300 rounded-md p-2">
+                                <option value="price">比較價格區間 (NT$)</option>
+                                <option value="time">比較遊程時間 (小時)</option>
+                            </select>
+                         </div>
+                         <div class="chart-container" style="max-width: 600px; height: 380px;">
+                            <canvas id="competitorChart"></canvas>
+                         </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-teal-900 text-white mt-20">
+        <div class="container mx-auto px-6 py-8 text-center">
+            <p class="font-bold text-lg">南澳海洋步道 | 互動式發展計畫</p>
+            <p class="mt-2 text-sm text-teal-200">本計畫旨在擘劃一個永續、共榮的未來。一個能夠榮耀土地、賦權在地、並為遊客帶來深刻啟發的新型態觀光模式。</p>
+            <p class="mt-4 text-xs text-teal-300">&copy; 2025 Nanao Ocean Trail Initiative. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+
+        const routeData = {
+            '1': {
+                name: '海灣探索者',
+                routes: [
+                    { name: '海灣探索者', points: '東澳灣沙灘 / 朝陽漁港', landscape: '粉鳥林、灣內海蝕平台', distance: 4, time: 2.5, skill: 1, risk: 1, standard: '浪高 < 0.5m，風力 < 3級' }
+                ]
+            },
+            '2': {
+                name: '海岸航行者',
+                routes: [
+                    { name: '烏岩角巡禮', points: '東澳灣沙灘', landscape: '烏岩角海蝕拱門、斷崖', distance: 7, time: 3.5, skill: 2, risk: 3, standard: '浪高 < 0.8m，風力 < 4級' },
+                    { name: '神秘沙灘探秘', points: '朝陽漁港 / 南澳溪口', landscape: '神秘沙灘北段、大理石岩壁', distance: 9, time: 4.5, skill: 2, risk: 4, standard: '浪高 < 1.0m，風力 < 4級，需配合退潮' }
+                ]
+            },
+            '3': {
+                name: '遠征先鋒',
+                routes: [
+                    { name: '烏石鼻遠眺', points: '朝陽漁港', landscape: '烏石鼻岬角、保留區生態', distance: 13.5, time: 5.5, skill: 4, risk: 4, standard: '浪高 < 1.0m，風力 < 4級，僅限穩定天氣' },
+                    { name: '海蝕洞遠征', points: '朝陽漁港', landscape: '神秘沙灘全段、海蝕洞群', distance: 15, time: 7, skill: 5, risk: 5, standard: '浪高 < 0.8m，風力 < 3級，僅限大退潮+平靜海象' }
+                ]
+            }
+        };
+
+        const cultureData = [
+            { stage: '行前溝通', element: '故事/價值觀', action: '網站與文宣強調「與泰雅同行」的理念，介紹Gaga精神。', icon: '💬' },
+            { stage: '出航前簡報', element: '儀式/語言', action: '泰雅嚮導以族語問候，舉行簡易祈福儀式，說明對自然的尊重。', icon: '🙏' },
+            { stage: '水上航行', element: '故事/生態智慧', action: '嚮導講述地景傳說、傳統海域知識、動植物辨識。', icon: '🛶' },
+            { stage: '中途休息', element: '飲食', action: '提供簡易的部落點心，如小米糕或馬告茶。', icon: '🍵' },
+            { stage: '行程結束後', element: '飲食/社群', action: '前往合作部落廚房享用正宗泰雅風味餐。', icon: '🍲' },
+            { stage: '多日/雨天備案', element: '工藝/藝術', action: '安排泰雅傳統織布或藤編手作工作坊。', icon: '👐' }
+        ];
+
+        const safetyData = [
+            { item: '責任保險', legal: '每人體傷300萬台幣', gold: '提高至500萬台幣或更高' },
+            { item: '嚮導配比', legal: '1領隊 : 10舟 / 20人', gold: '初階 1:8，中高階 1:6' },
+            { item: '嚮導資格', legal: '合格救生員/指導員', gold: '海洋獨木舟指導員 + WFR/WAFA 急救認證' },
+            { item: '遊客裝備', legal: '附哨救生衣', gold: '高浮力、合身的 PFD，附哨、附刀' },
+            { item: '團隊裝備', legal: '救生浮標、通訊器材', gold: '拖船繩、備用槳、急救包、VHF、衛星通訊裝置(高階)' },
+            { item: '緊急應變計畫', legal: '無明確規定', gold: '詳盡的書面EAP，並定期演練' }
+        ];
+
+        const competitorData = {
+            labels: ['東澳灣業者', '蘭陽溪業者', '冬山河業者', '南澳溪業者', '我們的定位'],
+            price: [1800, 1500, 675, 1200, 3500],
+            time: [4, 3, 1.5, 3, 6]
+        };
+
+        const routeDetailsContainer = document.getElementById('route-details');
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const routeChartCtx = document.getElementById('routeChart').getContext('2d');
+        let routeChart;
+
+        function updateRouteDetails(level) {
+            const data = routeData[level];
+            let html = `<h3 class="text-2xl font-bold text-teal-800 mb-4">${data.name}</h3>`;
+            data.routes.forEach(route => {
+                html += `
+                    <div class="mb-6 bg-white p-4 rounded-lg shadow-md">
+                        <h4 class="font-bold text-xl text-teal-700">${route.name}</h4>
+                        <p class="text-sm text-gray-500 mt-1"><strong>核心景觀:</strong> ${route.landscape}</p>
+                        <div class="mt-3 grid grid-cols-2 gap-2 text-sm">
+                            <p><strong>出發/登陸點:</strong> ${route.points}</p>
+                            <p><strong>預估距離:</strong> ${route.distance} 公里</p>
+                            <p><strong>預估時間:</strong> ${route.time} 小時</p>
+                            <p><strong>出航標準:</strong> ${route.standard}</p>
+                        </div>
+                    </div>
+                `;
+            });
+            routeDetailsContainer.innerHTML = html;
+        }
+        
+        function updateRouteChart(level) {
+            const data = routeData[level];
+            const chartData = {
+                labels: ['距離', '時間', '技能要求', '風險等級'],
+                datasets: data.routes.map((route, index) => ({
+                    label: route.name,
+                    data: [route.distance / 3, route.time / 1.5, route.skill, route.risk],
+                    backgroundColor: index === 0 ? 'rgba(13, 148, 136, 0.2)' : 'rgba(251, 191, 36, 0.2)',
+                    borderColor: index === 0 ? 'rgb(13, 148, 136)' : 'rgb(251, 191, 36)',
+                    pointBackgroundColor: index === 0 ? 'rgb(13, 148, 136)' : 'rgb(251, 191, 36)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: index === 0 ? 'rgb(13, 148, 136)' : 'rgb(251, 191, 36)'
+                }))
+            };
+
+            if (routeChart) {
+                routeChart.destroy();
+            }
+            routeChart = new Chart(routeChartCtx, {
+                type: 'radar',
+                data: chartData,
+                options: {
+                    maintainAspectRatio: false,
+                    elements: {
+                        line: {
+                            borderWidth: 3
+                        }
+                    },
+                    scales: {
+                        r: {
+                            angleLines: {
+                                display: false
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 5,
+                            pointLabels: {
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    const originalValue = data.routes[context.datasetIndex][context.label.toLowerCase().replace(' ', '')];
+                                    const unit = [' 公里', ' 小時', ' 級', ' 級'][context.dataIndex];
+                                    return label + originalValue + unit;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                const level = button.dataset.level;
+                updateRouteDetails(level);
+                updateRouteChart(level);
+            });
+        });
+        
+        updateRouteDetails('1');
+        updateRouteChart('1');
+
+        const cultureGrid = document.getElementById('culture-grid');
+        cultureGrid.innerHTML = cultureData.map(item => `
+            <div class="card transform hover:-translate-y-2">
+                <div class="flex items-start">
+                    <div class="text-4xl mr-4">${item.icon}</div>
+                    <div>
+                        <h4 class="text-xl font-bold text-teal-800">${item.stage}</h4>
+                        <p class="text-amber-600 font-semibold text-sm">${item.element}</p>
+                        <p class="mt-2 text-gray-600">${item.action}</p>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        
+        const safetyChecklist = document.getElementById('safety-checklist');
+        safetyChecklist.innerHTML = safetyData.map(item => `
+            <li class="border-b pb-4 last:border-b-0">
+                <h4 class="text-lg font-bold text-teal-800 mb-2">${item.item}</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-gray-100 p-3 rounded-md">
+                        <p class="text-sm font-semibold text-gray-500 flex items-center">
+                            <span class="text-red-500 mr-2">●</span> 法規最低要求
+                        </p>
+                        <p class="mt-1 text-gray-700">${item.legal}</p>
+                    </div>
+                    <div class="bg-amber-100 p-3 rounded-md border-l-4 border-amber-400">
+                        <p class="text-sm font-semibold text-amber-800 flex items-center">
+                            <span class="text-amber-500 mr-2">★</span> 南澳黃金標準
+                        </p>
+                        <p class="mt-1 font-medium text-amber-900">${item.gold}</p>
+                    </div>
+                </div>
+            </li>
+        `).join('');
+
+        const competitorChartCtx = document.getElementById('competitorChart').getContext('2d');
+        let competitorChart;
+        
+        function createCompetitorChart(metric) {
+            const data = competitorData[metric];
+            const title = metric === 'price' ? '平均價格 (NT$)' : '平均時間 (小時)';
+            const colors = ['#9CA3AF', '#9CA3AF', '#9CA3AF', '#9CA3AF', '#0D9488'];
+
+            if (competitorChart) {
+                competitorChart.destroy();
+            }
+
+            competitorChart = new Chart(competitorChartCtx, {
+                type: 'bar',
+                data: {
+                    labels: competitorData.labels,
+                    datasets: [{
+                        label: title,
+                        data: data,
+                        backgroundColor: colors,
+                        borderColor: colors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: title,
+                            font: { size: 16 }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                           grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        createCompetitorChart('price');
+
+        document.getElementById('competitor-metric-selector').addEventListener('change', (e) => {
+            createCompetitorChart(e.target.value);
+        });
+        
+        const mobileNav = document.getElementById('mobile-nav');
+        mobileNav.addEventListener('change', () => {
+            window.location.hash = mobileNav.value;
+        });
+
+        const sections = document.querySelectorAll('section[id]');
+        const navLinks = document.querySelectorAll('.nav-link');
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    navLinks.forEach(link => {
+                        link.classList.toggle('active', link.getAttribute('href').substring(1) === entry.target.id);
+                    });
+                }
+            });
+        }, { rootMargin: "-50% 0px -50% 0px" });
+
+        sections.forEach(section => {
+            observer.observe(section);
+        });
+
+    });
+    </script>
+</body>
+</html>
